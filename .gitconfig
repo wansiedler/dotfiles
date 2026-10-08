@@ -1,0 +1,75 @@
+# Portable git config — identity lives here (file), not GIT_* env.
+# Reaches every shell + tool (non-interactive Bash too), every host.
+[user]
+	name = wansiedler
+	email = apwansiedler@gmail.com
+	signingkey = 07F26A847643236E478A9DED5F4651FBFCAA5FFC
+
+[core]
+	excludesFile = ~/.gitignore_global
+	pager = delta
+
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+	default = current
+[pull]
+	rebase = true
+[log]
+	decorate = short
+[color]
+	ui = true
+
+# GitHub auth via gh (PAT stays out of dotfiles). Run `gh auth login` per host.
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential
+
+[alias]
+	# краткий статус рабочего дерева
+	s = status
+	# add с выводом того, что реально добавилось (-v)
+	a = add -v
+	# печатает имя текущей ветки, одной строкой
+	cur = branch --show-current
+	# печатает URL remote origin
+	origin = remote get-url origin
+	# clone вместе с сабмодулями
+	cl = clone --recursive
+	# сухой прогон clean: что бы удалилось (-n), включая игнорируемое (-x) и каталоги (-d)
+	clp = !git clean -n -x -d
+	# граф коммитов всех веток, по строке на коммит
+	gr = log --all --decorate --oneline --graph
+	# граф всех веток с относительной датой, именем и e-mail коммиттера
+	lg = log --all --graph --oneline --abbrev-commit --decorate=short --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue) <%cn><%ce>%Creset'
+	# то же, но только текущая ветка и только автор (без e-mail)
+	lgc = log --graph --oneline --abbrev-commit --decorate=short --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+	# аварийный выход: гасит и merge, и rebase; true — чтобы не падать, если ни один не идёт
+	abort = !git merge --abort; git rebase --abort; true
+	# commit -m из всех аргументов без кавычек; пустое сообщение — отказ
+	c = !f() { if [ -z "$1" ]; then echo COMMIT MESSAGE PLEASE; return 1; fi; echo "$*"; git commit -m "$*"; }; f
+	# commit + push одной командой; без сообщения берёт случайное с whatthecommit.com
+	done = !f() { if [ -z "$1" ]; then msg="I provided no commit message, here is a random one: $(curl -Ls https://whatthecommit.com/index.txt)"; else msg="$*"; fi; echo "$msg"; git commit -m "$msg" && git push || echo ERROR; }; f
+	# разворачивает shallow-клон до полной истории и дотягивает все ветки и теги
+	unshallow = !git fetch --unshallow && git fetch --depth=1 "+refs/heads/*:refs/remotes/origin/*" && git fetch --depth=1 "origin" "+refs/tags/*:refs/tags/*"
+	# pull из origin в его HEAD-ветку (имя определяет само) + обновление сабмодулей в 10 потоков
+	ull = !git pull --recurse-submodules --jobs=10 origin $(git remote show origin | sed -n "/HEAD branch/s/.*: //p") && git submodule update --init --recursive
+[safe]
+	# was 16.7k runner-appended entries; "*" already trusted everything
+	directory = *
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = true
+	hyperlinks = true
+	syntax-theme = Dracula
+[merge]
+	conflictStyle = zdiff3
+[diff]
+	colorMoved = default

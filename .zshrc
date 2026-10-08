@@ -1,97 +1,48 @@
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+# ~/.zshrc — interactive zsh.
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
-export PATH=/opt/homebrew/bin:$PATH
+# --- self-update dotfiles (throttled: once / 24h) ---
+_dot_autopull() {
+	local d="${DOTFILES:-$HOME/.dotfiles}" stamp
+	[ -d "$d/.git" ] || return
+	stamp="$d/.git/.last_autopull"
+	if [ -z "$(find "$stamp" -mtime -1 2>/dev/null)" ]; then
+		( git -C "$d" pull --quiet --ff-only 2>/dev/null && "$d/bootstrap.sh" --quiet ) &!
+		touch "$stamp"
+	fi
+}
+_dot_autopull
 
-# Required for Expo and React Native local app development
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+# --- prompt / basics ---
+setopt PROMPT_SUBST
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:git:*' formats ' (%b)'
+PROMPT='%F{cyan}%n@%m%f %F{yellow}%~%f%F{green}${vcs_info_msg_0_}%f
+→ '
 
-# Android specific paths after installing Android Studio
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH=$PATH:$ANDROID_HOME/emulator
-export PATH=$PATH:$ANDROID_HOME/platform-tools
+# history
+HISTFILE=~/.zsh_history
+HISTSIZE=50000
+SAVEHIST=50000
+setopt SHARE_HISTORY HIST_IGNORE_DUPS
 
-# To stop brew from auto updating
-export HOMEBREW_NO_AUTO_UPDATE=1
+# completion
+autoload -Uz compinit && compinit -u
 
-# ZSH_THEME="robbyrussell"
+# ansible tab completion (argcomplete)
+if command -v register-python-argcomplete &>/dev/null; then
+	autoload -Uz bashcompinit && bashcompinit
+	eval "$(register-python-argcomplete ansible)"
+	eval "$(register-python-argcomplete ansible-playbook)"
+	eval "$(register-python-argcomplete ansible-galaxy)"
+	eval "$(register-python-argcomplete ansible-vault)"
+	eval "$(register-python-argcomplete ansible-doc)"
+fi
 
-# Uncomment one of the following lines to change the auto-update behavior
-zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
-plugins=(
-    git
-    node
-    vscode
-)
-
-source $ZSH/oh-my-zsh.sh
-source /Users/amanhimself/.oh-my-zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+. "$HOME/.local/bin/env"
 
 
-# Custom scripts
-export NVM_DIR="$HOME/.nvm"
-  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
-# aliases
-## alias zshconfig="mate ~/.zshrc"
-## alias ohmyzsh="mate ~/.oh-my-zsh"
+export PATH="$HOME/go/bin:$PATH"
 
-## Compilation flags
-export ARCHFLAGS="-arch x86_64"
-
-## Opening GitHub directory
-alias g="$HOME/Documents/GitHub/"
-
-## Show touch on iOS simulator
-alias showtouch="defaults write com.apple.iphonesimulator ShowSingleTouches 1"
-
-## Hide touch on iOS simulator
-alias hidetouch="defaults write com.apple.iphonesimulator ShowSingleTouches 0"
-
-## Show/Hide hidden files in Finder
-alias show="defaults write com.apple.finder AppleShowAllFiles -bool true && killall Finder"
-alias hide="defaults write com.apple.finder AppleShowAllFiles -bool false && killall Finder"
-alias killds="find . -type f -name '*.DS_Store' -ls -delete"
-
-## Resize icons in launchpad
-alias lcol="defaults write com.apple.dock springboard-columns -int 9"
-alias lrow="defaults write com.apple.dock springboard-rows -int 8"
-alias kdock="killall Dock"
-
-## git shorthands
-alias gall="git add ."
-alias ga="git add"
-alias gc="git commit -m"
-alias gs="git status"
-alias gpush="git push -u origin"
-alias glog="git log --oneline --graph --decorate --color"
-alias gap="git add -p"
-alias gck="git checkout"
-alias gb="git branch"
-
-## yarn
-alias y="yarn"
-
-## alias for opening expo/docs directory directly
-alias ed="$HOME/Documents/GitHub/expo/docs"
-alias ex="$HOME/Documents/GitHub/expo"
-
-# direnv
-eval "$(direnv hook zsh)"
-
-################ END OF FILE configs ################
-
-# Starship
-eval "$(starship init zsh)"
+[ -f "$HOME/runner-host/runner-aliases.sh" ] && . "$HOME/runner-host/runner-aliases.sh"
